@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+from Models.SummarizerModel import generative_summary_for_note
 import os
 
 my_uid = os.getenv("MY_UID")
@@ -79,13 +80,47 @@ async def get_notes_by_client(client_code: ClientCode):
 
 @app.post("/saveNoteForClient")
 async def save_note_for_client(note: NoteForClient):
-    with engine.connect() as connection:
-        result = connection.execute(text("EXEC usp_saveNoteForClient :client_code, :invoices, :note_comment"), client_code=note.ClientCode, invoices=note.Invoices, note_comment=note.NoteComment)
-        return result.fetchone()
+    try:
+        with engine.connect() as connection:
+            # Explicitly begin the transaction
+            transaction = connection.begin()
+
+            try:
+                result = connection.execute(
+                    text("EXEC usp_saveNoteForClient :client_code, :invoices, :note_comment"),
+                    client_code=note.ClientCode,
+                    invoices=note.Invoices,
+                    note_comment=note.NoteComment,
+                )
+
+                # Check if the result set contains rows
+                if result.rowcount > 0:
+                    # Commit the transaction
+                    transaction.commit()
+                    return "Success"
+                else:
+                    # Roll back the transaction
+                    transaction.rollback()
+                    return {"message": "No rows found."}
+            except Exception as e:
+                # Roll back the transaction on error
+                transaction.rollback()
+                return {"error": str(e)}
+    except Exception as e:
+        return {"error": str(e)}
 
 
-# In[ ]:
+@app.get("/getSummaryForNotes/")
+def get_summary_for_notes(Noteids: str):
+    try:
+        # Convert comma-separated Noteids to a list
+        note_ids_list = Noteids.split(",")
 
+        # Call your generative_summary_for_note function
+        summary = generative_summary_for_note(note_ids_list)
 
-
+        # Return the summary as a string
+        return {"summary": summary}
+    except Exception as e:
+        return {"error": str(e)}
 
