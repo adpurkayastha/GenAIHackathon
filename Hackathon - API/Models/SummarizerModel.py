@@ -19,10 +19,10 @@ text_analytics_client = TextAnalyticsClient(endpoint, AzureKeyCredential(key))
 
 def get_data_from_sql(NOTE_IDs):
     # Replace with your actual SQL connection details
-    server = "gcollect.database.windows.net"
-    database = "gCollectDB"
-    username = "sqladmin"
-    password = "pwd@123456"
+    server = os.getenv("MY_HOST")
+    database = os.getenv("MY_DB")
+    username = os.getenv("MY_UID")
+    password = os.getenv("MY_PWD")
 
     # Establish a connection
     conn_str = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
