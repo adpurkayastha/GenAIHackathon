@@ -1,0 +1,89 @@
+from transformers import pipeline
+
+# Updated BART function to accept the model and tokenizer
+def BART(Client_Notes, model, tokenizer):
+    fine_tuned_bart = pipeline("summarization", model=model, tokenizer=tokenizer)
+    summaries = {}
+    for client, notes in Client_Notes.items():
+        fine_bart_summary = fine_tuned_bart(notes, max_length=250, min_length=40, length_penalty=2, num_beams=6)[0]['summary_text']
+        summaries[client] = fine_bart_summary
+    return summaries
+
+import json
+from transformers import BartForConditionalGeneration, BartTokenizer
+from azureml.core.model import Model
+from summarizer import preprocessing  # Make sure to import your preprocessing function
+
+# Global variables for the model and tokenizer
+model = None
+tokenizer = None
+
+# Called when the service is loaded
+def init():
+    global model, tokenizer
+    # Load the model from the registered model path
+    model_path = Model.get_model_path('your-model-name')
+    model = BartForConditionalGeneration.from_pretrained(model_path)
+    tokenizer = BartTokenizer.from_pretrained(model_path)
+
+# Called when a request is received
+def run(raw_data):
+    # Parse the incoming JSON to extract the NOTE_IDs
+    data = json.loads(raw_data)
+    NOTE_IDs = data['NOTE_IDs']  # Assuming the input JSON has a key 'NOTE_IDs' with the note IDs
+    
+    # Preprocess the data
+    Client_Notes = preprocessing(NOTE_IDs)
+    
+    # Generate the summary using the updated BART function
+    summaries = BART(Client_Notes, model, tokenizer)
+    
+    # Return the summaries as a JSON string
+    return json.dumps({"summaries": summaries})
+
+
+-- Local test
+from azureml.core import Workspace, Model
+
+# Connect to your Azure ML Workspace
+ws = Workspace.get(name="your-workspace-name",
+                   subscription_id="your-subscription-id",
+                   resource_group="your-resource-group")
+
+# Download the model to your local directory
+model = Model(ws, 'your-model-name')
+model.download(target_dir='.', exist_ok=True)
+
+--Test option 2
+
+from azureml.core.model import InferenceConfig
+from azureml.core.webservice import LocalWebservice
+from azureml.core import Environment
+from azureml.core.conda_dependencies import CondaDependencies
+
+# Create an environment for the model
+env = Environment('my_env')
+conda_deps = CondaDependencies.create(conda_packages=['numpy', 'pandas', 'scikit-learn'],
+                                      pip_packages=['azureml-sdk', 'transformers', 'torch'])
+env.python.conda_dependencies = conda_deps
+
+# Configure the scoring environment
+inference_config = InferenceConfig(entry_script='score.py', environment=env)
+
+# Create a local web service
+deployment_config = LocalWebservice.deploy_configuration(port=6789)
+local_service = Model.deploy(ws, "localtestservice", [model], inference_config, deployment_config)
+local_service.wait_for_deployment(show_output=True)
+
+print(f"Local service is running at {local_service.scoring_uri}")
+
+--test score.py
+
+# Simulate input data
+input_data = json.dumps({"NOTE_IDs": ["note1", "note2", "note3"]})
+
+# Call the run function
+output = run(input_data)
+
+# Print the output
+print(output)
