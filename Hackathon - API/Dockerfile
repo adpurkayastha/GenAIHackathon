@@ -18,11 +18,14 @@ RUN curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/so
 RUN apt-get update
 RUN ACCEPT_EULA=Y apt-get install -y msodbcsql17
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Copy only the requirements.txt file first to optimize caching
+COPY ./requirements.txt /app/requirements.txt
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . /app
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
