@@ -85,8 +85,8 @@ def preprocessing(NOTE_IDs):
 
 
 def BART(Client_Notes):
-    fine_tuned_bart = pipeline("summarization", model="./fine_tuned_bart")
-    fine_bart_tokenizer = BartTokenizer.from_pretrained("./fine_tuned_bart")
+    fine_tuned_bart = pipeline("summarization", model="./Models/fine_tuned_bart")
+    fine_bart_tokenizer = BartTokenizer.from_pretrained("./Models/fine_tuned_bart")
     summaries = []
     for client, notes in Client_Notes.items():
         fine_bart_summary = fine_tuned_bart(notes, max_length=250, min_length=40, length_penalty=2, num_beams=6)[0]['summary_text']
