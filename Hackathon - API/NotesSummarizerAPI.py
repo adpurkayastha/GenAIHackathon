@@ -64,18 +64,18 @@ async def get_clients():
         result = connection.execute(text("EXEC usp_getClients"))
         return result.fetchall()
 
-# @app.get("/getInvoiceDetailsByClient")
-@app.api_route("/getInvoiceDetailsByClient", methods=["GET", "POST"])
-async def get_invoice_details_by_client(client_code: ClientCode):
+@app.get("/getInvoiceDetailsByClient")
+#@app.api_route("/getInvoiceDetailsByClient", methods=["GET", "POST"])
+async def get_invoice_details_by_client(ClientCode: str):
     with engine.connect() as connection:
-        result = connection.execute(text("EXEC usp_getInvoiceDetailsByClient :client_code"), client_code=client_code.ClientCode)
+        result = connection.execute(text("EXEC usp_getInvoiceDetailsByClient :client_code"), client_code=ClientCode)
         return result.fetchall()
 
-# @app.get("/getNotesByClient")
-@app.api_route("/getNotesByClient", methods=["GET", "POST"])
-async def get_notes_by_client(client_code: ClientCode):
+@app.get("/getNotesByClient")
+#@app.api_route("/getNotesByClient", methods=["GET", "POST"])
+async def get_notes_by_client(ClientCode: str):
     with engine.connect() as connection:
-        result = connection.execute(text("EXEC usp_getNotesByClient :client_code"), client_code=client_code.ClientCode)
+        result = connection.execute(text("EXEC usp_getNotesByClient :client_code"), client_code=ClientCode)
         return result.fetchall()
 
 @app.post("/saveNoteForClient")
@@ -117,10 +117,13 @@ def get_summary_for_notes(Noteids: str):
         note_ids_list = Noteids.split(",")
 
         # Call your generative_summary_for_note function
-        summary = generative_summary_for_note(note_ids_list)
+        summary,inputnotes = generative_summary_for_note(note_ids_list)
 
         # Return the summary as a string
-        return {"summary": summary}
+        return {"inputtext":inputnotes,"summary": summary}
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/getSummaryForNotesTest/")
+def get_summary_for_notes_test(Noteids: str):
+    return {"inputtext":"My Input","summary":"My Output"}
