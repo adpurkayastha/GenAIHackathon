@@ -90,8 +90,8 @@ def BART(Client_Notes):
     summaries = []
     for client, notes in Client_Notes.items():
         fine_bart_summary = fine_tuned_bart(notes, max_length=250, min_length=40, length_penalty=2, num_beams=6)[0]['summary_text']
- 
-    return fine_bart_summary
+        input_notes=notes
+    return fine_bart_summary,notes
 
 
 # In[21]:
@@ -99,8 +99,8 @@ def BART(Client_Notes):
 
 def generative_summary_for_note(NOTE_IDs):
     Client_Notes = preprocessing(NOTE_IDs)
-    summary_df=BART(Client_Notes)
-    return summary_df
+    summary_df,notes=BART(Client_Notes)
+    return summary_df,notes
 
 
 
